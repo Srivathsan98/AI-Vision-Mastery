@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI / Vision Mastery Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07070f;
+    --bg2: #0c0c1a;
+    --panel: #10101e;
+    --border: #1a1a30;
+    --accent: #00c8ff;
+    --accent2: #7b2fff;
+    --accent3: #ff3c6e;
+    --accent4: #00e5a0;
+    --text: #e8eaf6;
+    --muted: #5a5a7a;
+    --glow: rgba(0,200,255,0.12);
+    --ph1: #00c8ff;
+    --ph2: #7b2fff;
+    --ph3: #ff3c6e;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,200,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,200,255,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ── APP SHELL ── */
+  .app-shell { max-width: 1520px; margin: 0 auto; padding: 0 20px 64px; position: relative; z-index: 1; }
+
+  /* ── HEADER ── */
+  .header { text-align: center; padding: 52px 0 56px; }
+  .header-badge {
+    display: inline-block;
+    background: rgba(0,200,255,0.08); border: 1px solid rgba(0,200,255,0.3);
+    color: var(--accent); font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 4px; padding: 6px 16px; margin-bottom: 20px; text-transform: uppercase;
+  }
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(64px, 9vw, 120px); line-height: 0.9; letter-spacing: 2px;
+    background: linear-gradient(130deg, #fff 0%, var(--accent) 55%, var(--accent2) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    margin-bottom: 8px;
+  }
+  .subtitle { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); letter-spacing: 3px; margin-bottom: 36px; }
+  .stats-row { display: flex; justify-content: center; gap: 32px; flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 40px; color: var(--accent); line-height: 1; }
+  .stat-label { font-size: 10px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+
+  /* ── GLOBAL PROGRESS ── */
+  .global-prog {
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 20px 28px; margin-bottom: 28px;
+    display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+  }
+  .gp-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 2px; white-space: nowrap; }
+  .gp-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; min-width: 160px; }
+  .gp-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .4s; }
+  .gp-chips { display: flex; flex-wrap: wrap; gap: 16px; }
+  .chip { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
+  .chip strong { color: var(--accent); }
+
+  /* ── PER-QUESTION ISSUE INPUT ── */
+  .q-issue-cell { display: flex; flex-direction: column; gap: 5px; align-items: flex-start; min-width: 90px; }
+  .q-issue-input {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    background: var(--bg2); border: 1px solid var(--border); color: var(--text);
+    padding: 4px 7px; width: 80px; outline: none; transition: border-color .15s;
+    border-radius: 2px;
+  }
+  .q-issue-input:focus { border-color: var(--accent); }
+  .q-issue-input::placeholder { color: var(--muted); opacity: 0.6; }
+  .q-issue-btn {
+    font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 1px;
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    padding: 3px 7px; cursor: pointer; transition: all .15s; white-space: nowrap;
+    border-radius: 2px;
+  }
+  .q-issue-btn:hover { color: var(--accent); border-color: var(--accent); background: rgba(0,200,255,0.08); }
+  .q-issue-btn.has-issue { color: var(--accent); border-color: rgba(0,200,255,0.4); }
+
+  /* ── WORKSPACE ── */
+  .workspace {
+    display: grid; grid-template-columns: minmax(220px, 280px) 1fr; gap: 0; align-items: start;
+    border: 1px solid var(--border); background: var(--panel); overflow: hidden;
+  }
+  @media (max-width: 900px) {
+    .workspace { grid-template-columns: 1fr; }
+    .rail { position: relative !important; max-height: none !important; border-right: none !important; border-bottom: 1px solid var(--border); }
+  }
+
+  /* ── RAIL ── */
+  .rail {
+    position: sticky; top: 0; align-self: start; max-height: 100vh; overflow-y: auto;
+    background: var(--bg2); border-right: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  }
+  .rail-head { padding: 20px 16px; border-bottom: 1px solid var(--border); color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+  .rail-phase { padding: 10px 16px 6px; color: var(--ph2); font-size: 10px; letter-spacing: 3px; text-transform: uppercase; }
+  .rail-phase.ph1 { color: var(--ph1); }
+  .rail-phase.ph3 { color: var(--ph3); }
+  .rail a.nav-mod {
+    display: flex; align-items: center; gap: 10px; padding: 10px 16px; color: var(--text); text-decoration: none;
+    border-left: 3px solid transparent; transition: background .15s, border-color .15s;
+  }
+  .rail a.nav-mod:hover { background: rgba(0,200,255,0.06); }
+  .rail a.nav-mod.active { background: rgba(0,200,255,0.1); border-left-color: var(--accent); color: #fff; }
+  .rail a.nav-mod .mi { opacity: .45; width: 22px; text-align: center; }
+  .rail a.nav-mod .mt { flex: 1; line-height: 1.35; }
+
+  /* ── STAGE ── */
+  .stage { padding: 28px 32px 40px; min-height: 70vh; background: var(--bg); }
+  .module-view { display: none; animation: fade .2s ease; }
+  .module-view.active { display: block; }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+  /* ── MODULE DETAIL ── */
+  .detail-panel { border: 1px solid var(--border); padding: 0; overflow: hidden; }
+  .detail-panel.ph1 { box-shadow: inset 3px 0 0 var(--ph1); }
+  .detail-panel.ph2 { box-shadow: inset 3px 0 0 var(--ph2); }
+  .detail-panel.ph3 { box-shadow: inset 3px 0 0 var(--ph3); }
+  .detail-top { padding: 24px 28px; border-bottom: 1px solid var(--border); background: var(--panel); position: relative; }
+  .detail-top .big-idx { position: absolute; top: 16px; right: 20px; font-family: 'Bebas Neue', sans-serif; font-size: 56px; color: rgba(255,255,255,0.04); line-height: 1; }
+  .detail-top .ico { font-size: 28px; display: block; margin-bottom: 10px; }
+  .detail-top h2 { font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; color: #fff; margin-bottom: 10px; letter-spacing: .5px; }
+  .detail-top .detail-desc { font-size: 12px; color: var(--muted); line-height: 1.75; max-width: 900px; }
+  .question-sheet { padding: 20px 24px 28px; }
+  .prog-inline { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; }
+  .prog-inline .bar { flex: 1; min-width: 120px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .prog-inline .fill { height: 100%; background: var(--accent); width: 0%; transition: width .3s; }
+  .module-status { font-size: 10px; color: var(--muted); }
+  .status-notstarted { color: var(--muted) !important; }
+  .status-inprogress { color: #ffb300 !important; }
+  .status-done { color: var(--accent4) !important; }
+
+  /* ── QUESTION TABLE ── */
+  .q-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .q-table th { text-align: left; font-size: 10px; color: var(--muted); font-weight: 500; padding: 8px 10px; border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 1px; }
+  .q-table td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: top; }
+  .q-num { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); white-space: nowrap; }
+  .q-text { color: var(--text); line-height: 1.55; }
+  .q-check { width: 18px; height: 18px; border: 1px solid var(--border); border-radius: 3px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: .15s; }
+  .q-check:hover { border-color: var(--accent); }
+  .q-check.checked { background: var(--accent4); border-color: var(--accent4); }
+  .q-check.checked::after { content: '✓'; font-size: 11px; color: #000; font-weight: 800; }
+  .q-row.checked .q-text { text-decoration: line-through; color: var(--muted); opacity: .7; }
+  .q-type { font-size: 10px; padding: 2px 8px; border-radius: 2px; text-transform: lowercase; white-space: nowrap; }
+  .type-theory { color: var(--accent); border: 1px solid rgba(0,200,255,0.25); }
+  .type-code { color: #b080ff; border: 1px solid rgba(123,47,255,0.3); }
+
+  /* q-gh replaced by per-question issue input */
+
+  /* ── LEGEND + FOOTER ── */
+  .legend { display: flex; justify-content: center; gap: 28px; flex-wrap: wrap; padding: 28px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin: 52px 0 36px; }
+  .legend-item { display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .footer { text-align: center; padding: 36px 0 0; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 2px; border-top: 1px solid var(--border); margin-top: 48px; }
+  .footer span { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+<div class="header">
+  <div class="header-badge">// mastery series · srivathsan98</div>
+  <h1>AI / VISION</h1>
+  <div class="subtitle">ARCHITECTURE · DESIGN · DEVELOPMENT · CODING · RESEARCH</div>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-num">18</div><div class="stat-label">Modules</div></div>
+    <div class="stat"><div class="stat-num">540</div><div class="stat-label">Questions</div></div>
+    <div class="stat"><div class="stat-num">3</div><div class="stat-label">Phases</div></div>
+    <div class="stat"><div class="stat-num">∞</div><div class="stat-label">Depth</div></div>
+  </div>
+</div>
+
+<div class="global-prog">
+  <span class="gp-label">OVERALL PROGRESS</span>
+  <div class="gp-track"><div class="gp-fill" id="gp-fill" style="width:0%"></div></div>
+  <div class="gp-chips">
+    <span class="chip"><strong id="gp-done">0</strong> / 540 done</span>
+    <span class="chip"><strong id="gp-pct">0%</strong></span>
+    <span class="chip"><strong id="gp-mods">0</strong> / 18 modules complete</span>
+  </div>
+</div>
+
+
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--ph1)"></div>Phase 1 · Foundations</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--ph2)"></div>Phase 2 · Intermediate</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--ph3)"></div>Phase 3 · Advanced</div>
+  <div class="legend-item"><div style="width:32px;height:2px;background:var(--accent)"></div>Theory</div>
+  <div class="legend-item"><div style="width:32px;height:2px;background:#b080ff"></div>Coding</div>
+</div>
+
+<div class="workspace">
+  <nav class="rail" aria-label="Modules">
+    <div class="rail-head">Modules</div>
+    <div class="rail-phase ph1">Phase 01 · Foundations</div>
+    <a href="#m01" class="nav-mod" data-mid="m01"><span class="mi">🧠</span><span class="mt">01 · ML Fundamentals</span></a>
+    <a href="#m02" class="nav-mod" data-mid="m02"><span class="mi">🔷</span><span class="mt">02 · CNN Architecture</span></a>
+    <a href="#m03" class="nav-mod" data-mid="m03"><span class="mi">👁️</span><span class="mt">03 · Computer Vision Basics</span></a>
+    <a href="#m04" class="nav-mod" data-mid="m04"><span class="mi">🎯</span><span class="mt">04 · Object Detection</span></a>
+    <a href="#m05" class="nav-mod" data-mid="m05"><span class="mi">✂️</span><span class="mt">05 · Image Segmentation</span></a>
+    <div class="rail-phase ph2">Phase 02 · Intermediate</div>
+    <a href="#m06" class="nav-mod" data-mid="m06"><span class="mi">🤖</span><span class="mt">06 · Transformer Architecture</span></a>
+    <a href="#m07" class="nav-mod" data-mid="m07"><span class="mi">🏗️</span><span class="mt">07 · Deep Learning Architecture Design</span></a>
+    <a href="#m08" class="nav-mod" data-mid="m08"><span class="mi">⚙️</span><span class="mt">08 · Model Training & Optimization</span></a>
+    <a href="#m09" class="nav-mod" data-mid="m09"><span class="mi">🔬</span><span class="mt">09 · Self-Supervised & Contrastive Learning</span></a>
+    <a href="#m10" class="nav-mod" data-mid="m10"><span class="mi">🌐</span><span class="mt">10 · Multimodal & Vision-Language Models</span></a>
+    <a href="#m11" class="nav-mod" data-mid="m11"><span class="mi">🎨</span><span class="mt">11 · Generative Models</span></a>
+    <a href="#m12" class="nav-mod" data-mid="m12"><span class="mi">📦</span><span class="mt">12 · 3D Vision & Depth Estimation</span></a>
+    <div class="rail-phase ph3">Phase 03 · Advanced</div>
+    <a href="#m13" class="nav-mod" data-mid="m13"><span class="mi">🚗</span><span class="mt">13 · Perception for Autonomous Systems</span></a>
+    <a href="#m14" class="nav-mod" data-mid="m14"><span class="mi">🏎️</span><span class="mt">14 · Model Deployment & Optimization</span></a>
+    <a href="#m15" class="nav-mod" data-mid="m15"><span class="mi">🧬</span><span class="mt">15 · Foundation Models & Fine-Tuning</span></a>
+    <a href="#m16" class="nav-mod" data-mid="m16"><span class="mi">🧮</span><span class="mt">16 · MLOps & Production AI Systems</span></a>
+    <a href="#m17" class="nav-mod" data-mid="m17"><span class="mi">🔧</span><span class="mt">17 · AI System Design</span></a>
+    <a href="#m18" class="nav-mod" data-mid="m18"><span class="mi">📐</span><span class="mt">18 · AI Research & Paper Reading</span></a>
+  </nav>
+  <main class="stage" id="main-stage">
+
+<section class="module-view" id="view-m01" data-mid="m01">
+  <div class="detail-panel ph1">
+    <div class="detail-top">
+      <span class="big-idx">01</span>
+      <span class="ico">🧠</span>
+      <h2>ML Fundamentals</h2>
+      <p class="detail-desc">Loss, optimizers, training loops, regularization, batch norm</p>
+    </div>
+    <div class="question-sheet">
+      <div class="prog-inline">
+        <span id="m01-prog" class="chip">0/30</span>
+        <span id="m01-status" class="module-status status-notstarted">Not started</span>
+        <div class="bar"><div class="fill" id="m01-bar"></div></div>
+        <span id="m01-barpct" style="font-size:10px;color:var(--muted)">0%</span>
+      </div>
+      <table class="q-table">
+        <thead><tr><th style="width:36px">✓</th><th style="width:52px">#</th><th>Question</th><th style="width:70px">Type</th><th style="width:96px">Issue #</th></tr></thead>
+        <tbody id="m01-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<section class="module-view" id="view-m02" data-mid="m02">
+  <div class="detail-panel ph1">
+    <div class="detail-top">
+      <span class="big-idx">02</span>
+      <span class="ico">🔷</span>
+      <h2>CNN Architecture</h2>
+      <p class="detail-desc">Convolutions, pooling, receptive fields, ResNet, EfficientNet</p>
+    </div>
+    <div class="question-sheet">
+      <div class="prog-inline">
+        <span id="m02-prog" class="chip">0/30</span>
+        <span id="m02-status" class="module-status status-notstarted">Not started</span>
+        <div class="bar"><div class="fill" id="m02-bar"></div></div>
+        <span id="m02-barpct" style="font-size:10px;color:var(--muted)">0%</span>
+      </div>
+      <table class="q-table">
+        <thead><tr><th style="width:36px">✓</th><th style="width:52px">#</th><th>Question</th><th style="width:70px">Type</th><th style="width:96px">Issue #</th></tr></thead>
+        <tbody id="m02-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<section class="module-view" id="view-m03" data-mid="m03">
+  <div class="detail-panel ph1">
+    <div class="detail-top">
+      <span class="big-idx">03</span>
+      <span class="ico">👁️</span>
+      <h2>Computer Vision Basics</h2>
+      <p class="detail-desc">Color spaces, transforms, edge detection, camera model, optical flow</p>
+    </div>
+    <div class="question-sheet">
+      <div class="prog-inline">
+        <span id="m03-prog" class="chip">0/30</span>
+        <span id="m03-status" class="module-status status-notstarted">Not started</span>
+        <div class="bar"><div class="fill" id="m03-bar"></div></div>
+        <span id="m03-barpct" style="font-size:10px;color:var(--muted)">0%</span>
+      </div>
+      <table class="q-table">
+        <thead><tr><th style="width:36px">✓</th><th style="width:52px">#</th><th>Question</th><th style="width:70px">Type</th><th style="width:96px">Issue #</th></tr></thead>
+        <tbody id="m03-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<section class="module-view" id="view-m04" data-mid="m04">
+  <div class="detail-panel ph1">
+    <div class="detail-top">
+      <span class="big-idx">04</span>
+      <span class="ico">🎯</span>
+      <h2>Object Detection</h2>
+      <p class="detail-desc">YOLO, Faster R-CNN, anchors, NMS, anchor-free methods</p>
+    </div>
+    <div class="question-sheet">
+      <div class="prog-inline">
+        <span id="m04-prog" class="chip">0/30</span>
+        <span id="m04-status" class="module-status status-notstarted">Not started</span>
+        <div class="bar"><div class="fill" id="m04-bar"></div></div>
+        <span id="m04-barpct" style="font-size:10px;color:var(--muted)">0%</span>
+      </div>
+      <table class="q-table">
+        <thead><tr><th style="width:36px">✓</th><th style="width:52px">#</th><th>Question</th><th style="width:70px">Type</th><th style="width:96px">Issue #</th></tr></thead>
+        <tbody id="m04-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<section class="module-view" id="view-m05" data-mid="m05">
+  <div class="detail-panel ph1">
+    <div class="detail-top">
+      <span class="big-idx">05</span>
+      <span class="ico">✂️</span>
+      <h2>Image Segmentation</h2>
+      <p class="detail-desc">Semantic, instance, panoptic, U-Net, Mask R-CNN, SAM</p>
+    </div>
+    <div class="question-sheet">
+      <div class="prog-inline">
+        <span id="m05-prog" class="chip">0/30</span>
+        <span id="m05-status" class="module-status status-notstarted">Not started</span>
+        <div class="bar"><div class="fill" id="m05-bar"></div></div>
+        <span id="m05-barpct" style="font-size:10px;color:var(--muted)">0%</span>
+      </div>
+      <table class="q-table">
+        <thead><tr><th style="width:36px">✓</th><th style="width:52px">#</th><th>Question</th><th style="width:70px">Type</th><th style="width:96px">Issue #</th></tr></thead>
+        <tbody id="m05-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<section class="module-view" id="view-m06" data-mid="m06">
+  <div class="detail-panel ph2">
+    <div class="detail-top">
+      <span class="big-idx">06</span>
+      <span class="ico">🤖</span>
+      <h2>Transformer Architecture</h2>
+      <p class="detail-desc">Attention, multi-head, positional encoding, ViT, Swin</p>
+    </div>
+    <div class="question-sheet">
+      <div class="prog-inline">
+        <span id="m06-prog" class="chip">0/30</span>
+        <span id="m06-status" class="module-status status-notstarted">Not started</span>
+        <div class="bar"><div class="fill" id="m06-bar"></div></div>
+        <span id="m06-barpct" style="font-size:10px;color:var(--muted)">0%</span>
+      </div>
+      <table class="q-table">
+        <thead><tr><th style="width:36px">✓</th><th style="width:52px">#</th><th>Question</th><th style="width:70px">Type</th><th style="width:96px">Issue #</th></tr></thead>
+        <tbody id="m06-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<section class="module-view" id="view-m07" data-mid="m07">
+  <div class="detail-panel ph2">
+    <div class="detail-top">
+      <span class="big-idx">07</span>
+      <span class="ico">🏗️</span>
+      <h2>Deep Learning Architecture Design</h2>
+      <p class="detail-desc">Model scaling, NAS, edge targeting, efficiency metrics</p>
+    </div>
+    <div class="question-sheet">
+      <div class="prog-inline">
+        <span id="m07-prog" class="chip">0/30</span>
+        <span id="m07-status" class="module-status status-notstarted">Not started</span>
+        <div class="bar"><div class="fill" id="m07-bar"></div></div>
+        <span id="m07-barpct" style="font-size:10px;color:var(--muted)">0%</span>
+      </div>
+      <table class="q-table">
+        <thead><tr><th style="width:36px">✓</th><th style="width:52px">#</th><th>Question</th><th style="width:70px">Type</th><th style="width:96px">Issue #</th></tr></thead>
+        <tbody id="m07-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<section class="module-view" id="view-m08" data-mid="m08">
+  <div class="detail-panel ph2">
+    <div class="detail-top">
+      <span class="big-idx">08</span>
+      <span class="ico">⚙️</span>
+      <h2>Model Training & Optimization</h2>
+      <p class="detail-desc">Distributed, mixed precision, gradient checkpointing, DDP/FSDP</p>
+    </div>
+    <div class="question-sheet">
+      <div class="prog-inline">
+        <span id="m08-prog" class="chip">0/30</span>
+        <span id="m08-status" class="module-status status-notstarted">Not started</span>
+        <div class="bar"><div class="fill" id="m08-bar"></div></div>
+        <span id="m08-barpct" style="font-size:10px;color:var(--muted)">0%</span>
+      </div>
+      <table class="q-table">
+        <thead><tr><th style="width:36px">✓</th><th style="width:52px">#</th><th>Question</th><th style="width:70px">Type</th><th style="width:96px">Issue #</th></tr></thead>
+        <tbody id="m08-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<section class="module-view" id="view-m09" data-mid="m09">
+  <div class="detail-panel ph2">
+    <div class="detail-top">
+      <span class="big-idx">09</span>
+      <span class="ico">🔬</span>
+      <h2>Self-Supervised & Contrastive Learning</h2>
+      <p class="detail-desc">SimCLR, MoCo, BYOL, MAE, DINO, CLIP</p>
+    </div>
+    <div class="question-sheet">
+      <div class="prog-inline">
+        <span id="m09-prog" class="chip">0/30</span>
+        <span id="m09-status" class="module-status status-notstarted">Not started</span>
+        <div class="bar"><div class="fill" id="m09-bar"></div></div>
+        <span id="m09-barpct" style="font-size:10px;color:var(--muted)">0%</span>
+      </div>
+      <table class="q-table">
+        <thead><tr><th style="width:36px">✓</th><th style="width:52px">#</th><th>Question</th><th style="width:70px">Type</th><th style="width:96px">Issue #</th></tr></thead>
+        <tbody id="m09-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<section class="module-view" id="view-m10" data-mid="m10">
+  <div class="detail-panel ph2">
+    <div class="detail-top">
+      <span class="big-idx">10</span>
+      <span class="ico">🌐</span>
+      <h2>Multimodal & Vision-Language Models</h2>
+      <p class="detail-desc">CLIP, LLaVA, Flamingo, BLIP-2, VQA, grounding</p>
+    </div>
+    <div class="question-sheet">
+      <div class="prog-inline">
+        <span id="m10-prog" class="chip">0/30</span>
+        <span id="m10-status" class="module-status status-notstarted">Not started</span>
+        <div class="bar"><div class="fill" id="m10-bar"></div></div>
+        <span id="m10-barpct" style="font-size:10px;color:var(--muted)">0%</span>
+      </div>
+      <table class="q-table">
+        <thead><tr><th style="width:36px">✓</th><th style="width:52px">#</th><th>Question</th><th style="width:70px">Type</th><th style="width:96px">Issue #</th></tr></thead>
+        <tbody id="m10-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<section class="module-view" id="view-m11" data-mid="m11">
+  <div class="detail-panel ph2">
+    <div class="detail-top">
+      <span class="big-idx">11</span>
+      <span class="ico">🎨</span>
+      <h2>Generative Models</h2>
+      <p class="detail-desc">GANs, VAEs, diffusion models, ControlNet, LoRA fine-tuning</p>
+    </div>
+    <div class="question-sheet">
+      <div class="prog-inline">
+        <span id="m11-prog" class="chip">0/30</span>
+        <span id="m11-status" class="module-status status-notstarted">Not started</span>
+        <div class="bar"><div class="fill" id="m11-bar"></div></div>
+        <span id="m11-barpct" style="font-size:10px;color:var(--muted)">0%</span>
+      </div>
+      <table class="q-table">
+        <thead><tr><th style="width:36px">✓</th><th style="width:52px">#</th><th>Question</th><th style="width:70px">Type</th><th style="width:96px">Issue #</th></tr></thead>
+        <tbody id="m11-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<section class="module-view" id="view-m12" data-mid="m12">
+  <div class="detail-panel ph2">
+    <div class="detail-top">
+      <span class="big-idx">12</span>
+      <span class="ico">📦</span>
+      <h2>3D Vision & Depth Estimation</h2>
+      <p class="detail-desc">Stereo, LiDAR, NeRF, 3DGS, depth anything</p>
+    </div>
+    <div class="question-sheet">
+      <div class="prog-inline">
+        <span id="m12-prog" class="chip">0/30</span>
+        <span id="m12-status" class="module-status status-notstarted">Not started</span>
+        <div class="bar"><div class="fill" id="m12-bar"></div></div>
+        <span id="m12-barpct" style="font-size:10px;color:var(--muted)">0%</span>
+      </div>
+      <table class="q-table">
+        <thead><tr><th style="width:36px">✓</th><th style="width:52px">#</th><th>Question</th><th style="width:70px">Type</th><th style="width:96px">Issue #</th></tr></thead>
+        <tbody id="m12-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<section class="module-view" id="view-m13" data-mid="m13">
+  <div class="detail-panel ph3">
+    <div class="detail-top">
+      <span class="big-idx">13</span>
+      <span class="ico">🚗</span>
+      <h2>Perception for Autonomous Systems</h2>
+      <p class="detail-desc">Sensor fusion, multi-object tracking, BEV, calibration</p>
+    </div>
+    <div class="question-sheet">
+      <div class="prog-inline">
+        <span id="m13-prog" class="chip">0/30</span>
+        <span id="m13-status" class="module-status status-notstarted">Not started</span>
+        <div class="bar"><div class="fill" id="m13-bar"></div></div>
+        <span id="m13-barpct" style="font-size:10px;color:var(--muted)">0%</span>
+      </div>
+      <table class="q-table">
+        <thead><tr><th style="width:36px">✓</th><th style="width:52px">#</th><th>Question</th><th style="width:70px">Type</th><th style="width:96px">Issue #</th></tr></thead>
+        <tbody id="m13-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<section class="module-view" id="view-m14" data-mid="m14">
+  <div class="detail-panel ph3">
+    <div class="detail-top">
+      <span class="big-idx">14</span>
+      <span class="ico">🏎️</span>
+      <h2>Model Deployment & Optimization</h2>
+      <p class="detail-desc">TensorRT, ONNX, quantization, pruning, edge, C++ inference</p>
+    </div>
+    <div class="question-sheet">
+      <div class="prog-inline">
+        <span id="m14-prog" class="chip">0/30</span>
+        <span id="m14-status" class="module-status status-notstarted">Not started</span>
+        <div class="bar"><div class="fill" id="m14-bar"></div></div>
+        <span id="m14-barpct" style="font-size:10px;color:var(--muted)">0%</span>
+      </div>
+      <table class="q-table">
+        <thead><tr><th style="width:36px">✓</th><th style="width:52px">#</th><th>Question</th><th style="width:70px">Type</th><th style="width:96px">Issue #</th></tr></thead>
+        <tbody id="m14-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<section class="module-view" id="view-m15" data-mid="m15">
+  <div class="detail-panel ph3">
+    <div class="detail-top">
+      <span class="big-idx">15</span>
+      <span class="ico">🧬</span>
+      <h2>Foundation Models & Fine-Tuning</h2>
+      <p class="detail-desc">LLM adaptation, PEFT, LoRA, RLHF, DPO, QLoRA, RAG</p>
+    </div>
+    <div class="question-sheet">
+      <div class="prog-inline">
+        <span id="m15-prog" class="chip">0/30</span>
+        <span id="m15-status" class="module-status status-notstarted">Not started</span>
+        <div class="bar"><div class="fill" id="m15-bar"></div></div>
+        <span id="m15-barpct" style="font-size:10px;color:var(--muted)">0%</span>
+      </div>
+      <table class="q-table">
+        <thead><tr><th style="width:36px">✓</th><th style="width:52px">#</th><th>Question</th><th style="width:70px">Type</th><th style="width:96px">Issue #</th></tr></thead>
+        <tbody id="m15-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<section class="module-view" id="view-m16" data-mid="m16">
+  <div class="detail-panel ph3">
+    <div class="detail-top">
+      <span class="big-idx">16</span>
+      <span class="ico">🧮</span>
+      <h2>MLOps & Production AI Systems</h2>
+      <p class="detail-desc">Experiment tracking, CI/CD for ML, monitoring, drift detection</p>
+    </div>
+    <div class="question-sheet">
+      <div class="prog-inline">
+        <span id="m16-prog" class="chip">0/30</span>
+        <span id="m16-status" class="module-status status-notstarted">Not started</span>
+        <div class="bar"><div class="fill" id="m16-bar"></div></div>
+        <span id="m16-barpct" style="font-size:10px;color:var(--muted)">0%</span>
+      </div>
+      <table class="q-table">
+        <thead><tr><th style="width:36px">✓</th><th style="width:52px">#</th><th>Question</th><th style="width:70px">Type</th><th style="width:96px">Issue #</th></tr></thead>
+        <tbody id="m16-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<section class="module-view" id="view-m17" data-mid="m17">
+  <div class="detail-panel ph3">
+    <div class="detail-top">
+      <span class="big-idx">17</span>
+      <span class="ico">🔧</span>
+      <h2>AI System Design</h2>
+      <p class="detail-desc">End-to-end design, scalability, real-world production systems</p>
+    </div>
+    <div class="question-sheet">
+      <div class="prog-inline">
+        <span id="m17-prog" class="chip">0/30</span>
+        <span id="m17-status" class="module-status status-notstarted">Not started</span>
+        <div class="bar"><div class="fill" id="m17-bar"></div></div>
+        <span id="m17-barpct" style="font-size:10px;color:var(--muted)">0%</span>
+      </div>
+      <table class="q-table">
+        <thead><tr><th style="width:36px">✓</th><th style="width:52px">#</th><th>Question</th><th style="width:70px">Type</th><th style="width:96px">Issue #</th></tr></thead>
+        <tbody id="m17-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<section class="module-view" id="view-m18" data-mid="m18">
+  <div class="detail-panel ph3">
+    <div class="detail-top">
+      <span class="big-idx">18</span>
+      <span class="ico">📐</span>
+      <h2>AI Research & Paper Reading</h2>
+      <p class="detail-desc">Reading papers, benchmarks, ablations, scaling laws</p>
+    </div>
+    <div class="question-sheet">
+      <div class="prog-inline">
+        <span id="m18-prog" class="chip">0/30</span>
+        <span id="m18-status" class="module-status status-notstarted">Not started</span>
+        <div class="bar"><div class="fill" id="m18-bar"></div></div>
+        <span id="m18-barpct" style="font-size:10px;color:var(--muted)">0%</span>
+      </div>
+      <table class="q-table">
+        <thead><tr><th style="width:36px">✓</th><th style="width:52px">#</th><th>Question</th><th style="width:70px">Type</th><th style="width:96px">Issue #</th></tr></thead>
+        <tbody id="m18-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+  </main>
+</div>
+
+<div class="footer">Built with ⚡ · <span>AI / Vision</span> Mastery Tracker · 18 Modules · 540 Questions</div>
+</div>
+
+<script>
+const SKEY = 'ai_vision_mastery_v1';
+const GH_REPO = 'Srivathsan98/AI-Vision-Mastery';
+const MODULES_DATA = {
+  'm01': [{"t": "What is a loss function and why is it necessary for training? Explain cross-entropy vs MSE.", "k": "theory"}, {"t": "Derive the gradient of MSE loss with respect to weights. Connect it to the parameter update rule.", "k": "theory"}, {"t": "Explain the difference between SGD, SGD with momentum, Adam, and RMSProp. When do you choose each?", "k": "theory"}, {"t": "What is the bias-variance tradeoff? How does model capacity relate to underfitting and overfitting?", "k": "theory"}, {"t": "Explain L1 vs L2 regularization. How do they differ in effect on weights?", "k": "theory"}, {"t": "What is dropout? How does it act as regularization? What changes at inference time?", "k": "theory"}, {"t": "Explain batch normalization: what does it normalize, when in the network, and why does it help?", "k": "theory"}, {"t": "What is the vanishing gradient problem? Why do deep networks suffer from it and how do skip connections help?", "k": "theory"}, {"t": "Explain learning rate scheduling: step decay, cosine annealing, and warmup. Why does warmup matter?", "k": "theory"}, {"t": "What is the difference between a training epoch, a batch, and an iteration?", "k": "theory"}, {"t": "What is the purpose of a validation set vs a test set? Why can't you tune on the test set?", "k": "theory"}, {"t": "Explain data augmentation. What types are label-preserving and what aren't for classification vs detection?", "k": "theory"}, {"t": "What is gradient clipping and when is it needed?", "k": "theory"}, {"t": "What is early stopping? How does it relate to regularization?", "k": "theory"}, {"t": "Explain weight initialization: why is zero initialization bad, and what does Xavier/He initialization do?", "k": "theory"}, {"t": "Implement a full PyTorch training loop: forward pass, loss, backward, optimizer step, validation.", "k": "code"}, {"t": "Write a PyTorch Dataset and DataLoader for a custom image folder with augmentations.", "k": "code"}, {"t": "Implement mini-batch gradient descent with momentum from scratch in NumPy.", "k": "code"}, {"t": "Implement a custom focal loss in PyTorch with alpha and gamma parameters.", "k": "code"}, {"t": "Write a learning rate finder that sweeps LR and plots loss to identify the optimal range.", "k": "code"}, {"t": "Implement a cosine annealing scheduler with warm restarts from scratch.", "k": "code"}, {"t": "Write a training loop with gradient accumulation to simulate a larger batch size.", "k": "code"}, {"t": "Implement knowledge distillation loss: KL divergence between teacher soft labels and student output.", "k": "code"}, {"t": "Write a callback system for training (e.g. log every N steps, save best model, early stop).", "k": "code"}, {"t": "Implement a simple MLP classifier in PyTorch and train it on a toy 2D dataset.", "k": "code"}, {"t": "What is the difference between online, mini-batch, and full-batch gradient descent?", "k": "theory"}, {"t": "Explain the concept of model capacity. How does width vs depth affect it differently?", "k": "theory"}, {"t": "What is transfer learning and why does it work? What layers do you freeze and what do you fine-tune?", "k": "theory"}, {"t": "Explain what happens when you train with too large a learning rate vs too small.", "k": "theory"}, {"t": "What is a hyperparameter vs a model parameter? Give 5 examples of each.", "k": "theory"}],
+  'm02': [{"t": "Explain convolution: kernel, stride, padding, dilation. How do you compute the output spatial size?", "k": "theory"}, {"t": "What is the purpose of max pooling vs average pooling? How do they affect translation invariance?", "k": "theory"}, {"t": "What is a depthwise separable convolution? How does it reduce FLOPs vs standard convolution?", "k": "theory"}, {"t": "Explain receptive field. How does it grow with depth, stride, and dilated convolutions?", "k": "theory"}, {"t": "Walk through the LeNet → AlexNet → VGG → ResNet evolution. What does each introduce?", "k": "theory"}, {"t": "Explain the ResNet residual block. Why does the identity shortcut solve the degradation problem?", "k": "theory"}, {"t": "What is a bottleneck block in ResNet-50? How does the 1×1 convolution reduce computation?", "k": "theory"}, {"t": "Explain EfficientNet compound scaling: why scale width, depth, and resolution jointly?", "k": "theory"}, {"t": "What is a 1×1 convolution useful for? Give three distinct use cases.", "k": "theory"}, {"t": "What is global average pooling and how is it used instead of fully connected layers?", "k": "theory"}, {"t": "Explain the squeeze-and-excitation block. How does it perform channel-wise recalibration?", "k": "theory"}, {"t": "What is dilated/atrous convolution? How is it used in DeepLab for segmentation?", "k": "theory"}, {"t": "What is transposed convolution (deconvolution)? Where is it used?", "k": "theory"}, {"t": "Explain the difference between same padding and valid padding.", "k": "theory"}, {"t": "What is a feature pyramid? How does FPN differ from U-Net skip connections?", "k": "theory"}, {"t": "Implement ResNet-18 from scratch in PyTorch including residual connections and batch norm.", "k": "code"}, {"t": "Implement depthwise separable convolution in PyTorch and verify it matches standard conv output.", "k": "code"}, {"t": "Implement a custom Conv2d layer using unfold to understand what convolution really does.", "k": "code"}, {"t": "Write a script to visualize feature maps of each layer of a trained ResNet on a given image.", "k": "code"}, {"t": "Implement MobileNetV2 inverted residual block and verify parameter count.", "k": "code"}, {"t": "Build a CNN classifier for CIFAR-10 with under 1M parameters achieving > 85% accuracy.", "k": "code"}, {"t": "Implement a FLOP counter for any PyTorch model using hooks.", "k": "code"}, {"t": "Write a dilated convolution module and verify that dilation correctly increases the receptive field.", "k": "code"}, {"t": "Implement a squeeze-and-excitation block and insert it into a ResNet layer.", "k": "code"}, {"t": "Compute and plot the effective receptive field of a deep CNN on a synthetic input.", "k": "code"}, {"t": "What is depthwise convolution vs pointwise convolution? Combine them to explain MobileNetV1.", "k": "theory"}, {"t": "What is the difference between a convolutional layer and a linear layer in terms of weight sharing?", "k": "theory"}, {"t": "Explain how batch norm behaves differently at training vs inference time.", "k": "theory"}, {"t": "What is group normalization and when is it preferred over batch normalization?", "k": "theory"}, {"t": "What is a NAS-found architecture? How does DARTS search for architectures?", "k": "theory"}],
+  'm03': [{"t": "Explain RGB, HSV, and LAB color spaces. When would you prefer each for vision tasks?", "k": "theory"}, {"t": "What is histogram equalization and CLAHE? When does local contrast enhancement help?", "k": "theory"}, {"t": "Walk through the Canny edge detection pipeline step by step.", "k": "theory"}, {"t": "Explain the pinhole camera model. Define intrinsic matrix K and extrinsic [R|t].", "k": "theory"}, {"t": "What is a homography? What are its degrees of freedom and when is it valid?", "k": "theory"}, {"t": "Explain image pyramids (Gaussian and Laplacian). How are they used in blending?", "k": "theory"}, {"t": "What is optical flow? Compare Lucas-Kanade sparse flow vs Farneback dense flow.", "k": "theory"}, {"t": "Explain morphological operations: erosion, dilation, opening, closing. Use case for each.", "k": "theory"}, {"t": "What is the Harris corner detector? Explain the structure tensor and corner response.", "k": "theory"}, {"t": "What is SIFT? Explain scale-space, keypoint detection, orientation assignment, and descriptor.", "k": "theory"}, {"t": "What is the difference between affine and perspective transformations?", "k": "theory"}, {"t": "Explain image rectification and stereo baseline. How does stereo geometry work?", "k": "theory"}, {"t": "What is lens distortion? What are radial and tangential distortion coefficients?", "k": "theory"}, {"t": "What is image augmentation for training robustness? List 10 strategies.", "k": "theory"}, {"t": "What is Hough transform? How does it detect lines and circles?", "k": "theory"}, {"t": "Implement image warping with a homography matrix using cv2.warpPerspective.", "k": "code"}, {"t": "Write a pipeline to detect a chessboard, estimate camera pose, and draw a 3D cube using OpenCV.", "k": "code"}, {"t": "Implement Harris corner detection from scratch using the structure tensor.", "k": "code"}, {"t": "Implement dense optical flow using Farneback and visualize the flow field as HSV image.", "k": "code"}, {"t": "Implement a real-time lane detection pipeline using Canny + Hough transform on road video.", "k": "code"}, {"t": "Write a stereo disparity pipeline using cv2.StereoSGBM and compute depth map.", "k": "code"}, {"t": "Implement CLAHE on a grayscale image and compare with global histogram equalization.", "k": "code"}, {"t": "Write a function to undistort an image given camera matrix and distortion coefficients.", "k": "code"}, {"t": "Implement image blending using Laplacian pyramid for seamless stitching.", "k": "code"}, {"t": "Write a background subtraction system using MOG2 and detect moving objects.", "k": "code"}, {"t": "What is epipolar geometry? Define the fundamental matrix F and essential matrix E.", "k": "theory"}, {"t": "What is image stitching (panorama)? What steps are required?", "k": "theory"}, {"t": "What are template matching methods in OpenCV? When does NCC work better than SSD?", "k": "theory"}, {"t": "Explain connected components analysis. How do you label blobs?", "k": "theory"}, {"t": "What is the difference between geometric and photometric image augmentation?", "k": "theory"}],
+  'm04': [{"t": "Explain two-stage detection (Faster R-CNN). What does the RPN do and how does it work?", "k": "theory"}, {"t": "Explain YOLO v1: how it reformulates detection as regression with an S×S×(B*5+C) grid.", "k": "theory"}, {"t": "What are anchor boxes? How do you design scales and aspect ratios? How are they assigned to GT?", "k": "theory"}, {"t": "What is IoU? How is it used in NMS, anchor assignment, and evaluation?", "k": "theory"}, {"t": "Explain Non-Maximum Suppression step by step. What is soft-NMS and when is it better?", "k": "theory"}, {"t": "What is mean Average Precision (mAP)? Walk through computing AP for one class.", "k": "theory"}, {"t": "Compare SSD vs Faster R-CNN: speed, accuracy, anchor design, training.", "k": "theory"}, {"t": "Explain YOLOv5 architecture: backbone (CSP), neck (PANet), and multi-scale detection head.", "k": "theory"}, {"t": "What is the focal loss (RetinaNet)? Derive it from cross-entropy. Why does it solve class imbalance?", "k": "theory"}, {"t": "Explain anchor-free detection: CornerNet, CenterPoint, FCOS. How do they eliminate anchors?", "k": "theory"}, {"t": "What is YOLOv8's decoupled head? How does it differ from coupled head?", "k": "theory"}, {"t": "What is RT-DETR? How does it combine attention with real-time speed?", "k": "theory"}, {"t": "Explain deformable convolution. How does the offset field allow adaptive receptive fields?", "k": "theory"}, {"t": "What is the difference between one-stage and two-stage detectors in terms of speed and accuracy?", "k": "theory"}, {"t": "What is COCO mAP@0.5:0.95 and how does it differ from Pascal VOC AP@0.5?", "k": "theory"}, {"t": "Implement IoU from scratch and vectorize it for batch computation.", "k": "code"}, {"t": "Implement NMS from scratch using IoU thresholding on a set of bounding boxes.", "k": "code"}, {"t": "Implement soft-NMS and compare its output to hard NMS on overlapping boxes.", "k": "code"}, {"t": "Fine-tune YOLOv8 on a custom dataset: labeling format, config, training, evaluation.", "k": "code"}, {"t": "Implement a simple anchor-based detection head that predicts class scores and offsets.", "k": "code"}, {"t": "Write a precision-recall curve computation and AP calculation from scratch.", "k": "code"}, {"t": "Write an anchor generator that creates anchors at multiple scales and ratios for a feature map.", "k": "code"}, {"t": "Implement anchor-to-GT assignment using IoU threshold (positive/negative/ignore).", "k": "code"}, {"t": "Write an augmentation pipeline for detection: random crop, flip, color jitter with BBox update.", "k": "code"}, {"t": "Compute FLOPs and parameters of a YOLOv5-s model layer by layer.", "k": "code"}, {"t": "What is label assignment in FCOS? How does centerness weight predictions?", "k": "theory"}, {"t": "Explain ATSS (Adaptive Training Sample Selection). Why is it better than fixed IoU thresholds?", "k": "theory"}, {"t": "What is the role of the FPN neck in modern detectors?", "k": "theory"}, {"t": "What is test-time augmentation (TTA) for detection? How does it improve mAP?", "k": "theory"}, {"t": "What is WBF (Weighted Boxes Fusion) and how does it compare to NMS for ensemble?", "k": "theory"}],
+  'm05': [{"t": "Distinguish semantic, instance, and panoptic segmentation with examples.", "k": "theory"}, {"t": "Explain U-Net: encoder-decoder structure with skip connections. Why are the skips critical?", "k": "theory"}, {"t": "What is atrous spatial pyramid pooling (ASPP) in DeepLabv3?", "k": "theory"}, {"t": "Explain Mask R-CNN. How does it extend Faster R-CNN to output per-instance masks?", "k": "theory"}, {"t": "What is RoIAlign? Why is it better than RoIPool for mask prediction?", "k": "theory"}, {"t": "What is the dice loss and IoU loss? How do they differ from pixel-wise cross-entropy?", "k": "theory"}, {"t": "What is panoptic segmentation? How are 'stuff' and 'things' classes handled differently?", "k": "theory"}, {"t": "Explain SegFormer: how does the mix transformer encoder replace CNNs for segmentation?", "k": "theory"}, {"t": "What is Segment Anything Model (SAM)? Describe its architecture and prompting mechanisms.", "k": "theory"}, {"t": "What is the boundary F1 score and why is pixel accuracy insufficient for segmentation?", "k": "theory"}, {"t": "Explain class imbalance in segmentation. How do weighted loss and OHEM address it?", "k": "theory"}, {"t": "What is Mask2Former? How does it unify instance, semantic, and panoptic with masked attention?", "k": "theory"}, {"t": "What is the role of CRF (Conditional Random Field) as post-processing for segmentation?", "k": "theory"}, {"t": "Explain point cloud segmentation: how does PointNet handle unordered 3D point sets?", "k": "theory"}, {"t": "What is PointNet++? How does it add hierarchical local feature learning to PointNet?", "k": "theory"}, {"t": "Implement U-Net from scratch in PyTorch for binary segmentation with dice loss.", "k": "code"}, {"t": "Implement dice coefficient and IoU metric for segmentation evaluation.", "k": "code"}, {"t": "Write a full semantic segmentation pipeline using SegFormer on a custom dataset.", "k": "code"}, {"t": "Implement a custom weighted cross-entropy + dice loss for class-imbalanced segmentation.", "k": "code"}, {"t": "Write a panoptic quality (PQ) metric computation from scratch.", "k": "code"}, {"t": "Implement instance segmentation post-processing: merge semantic + instance predictions.", "k": "code"}, {"t": "Write a data pipeline for segmentation that handles multi-class masks and augmentation.", "k": "code"}, {"t": "Implement a simple fully convolutional network (FCN-32s) in PyTorch.", "k": "code"}, {"t": "Write a multi-scale inference wrapper that averages predictions at 3 resolutions.", "k": "code"}, {"t": "Implement a sliding window inference for large images with overlap and blending.", "k": "code"}, {"t": "What is connected components for instance segmentation? Explain the Watershed algorithm.", "k": "theory"}, {"t": "What is SOLO and SOLOv2? How do they do instance segmentation without proposals?", "k": "theory"}, {"t": "Explain video object segmentation (VOS). How do propagation-based methods work?", "k": "theory"}, {"t": "What is weakly supervised segmentation? How do image-level labels train a segmentation model?", "k": "theory"}, {"t": "What is the difference between closed-set and open-vocabulary segmentation?", "k": "theory"}],
+  'm06': [{"t": "Derive scaled dot-product attention from scratch. Why scale by 1/sqrt(d_k)?", "k": "theory"}, {"t": "Explain multi-head attention. Why does splitting heads help attend to different subspaces?", "k": "theory"}, {"t": "What is positional encoding? Compare sinusoidal fixed, learned, and RoPE approaches.", "k": "theory"}, {"t": "Describe the full Transformer encoder block: multi-head attention + FFN + LayerNorm.", "k": "theory"}, {"t": "Explain Vision Transformer (ViT): patch embedding, class token, position embedding.", "k": "theory"}, {"t": "What is the quadratic complexity of self-attention? How do Linformer, Performer, FlashAttention address it?", "k": "theory"}, {"t": "Explain DETR: how does it use bipartite matching to remove NMS?", "k": "theory"}, {"t": "What is Swin Transformer? How do shifted windows enable linear complexity in image size?", "k": "theory"}, {"t": "Explain FlashAttention: how does tiling avoid materializing the full attention matrix?", "k": "theory"}, {"t": "What is the difference between pre-norm and post-norm transformers? Which is more stable?", "k": "theory"}, {"t": "Explain cross-attention. How is it used in encoder-decoder and diffusion conditioning?", "k": "theory"}, {"t": "What is KV caching? How does it speed up autoregressive inference?", "k": "theory"}, {"t": "Compare CNN inductive biases vs transformer inductive biases. When does ViT beat ResNet?", "k": "theory"}, {"t": "What is DeiT? How does it distill knowledge from a CNN teacher to train ViT data-efficiently?", "k": "theory"}, {"t": "What is the Perceiver architecture? How does it handle arbitrary input modalities?", "k": "theory"}, {"t": "Implement a single Transformer encoder block in PyTorch (attention + FFN + LayerNorm).", "k": "code"}, {"t": "Implement multi-head self-attention in PyTorch with masking support.", "k": "code"}, {"t": "Implement a minimal ViT for CIFAR-10 from scratch in PyTorch.", "k": "code"}, {"t": "Write a RoPE (Rotary Position Embedding) implementation in PyTorch.", "k": "code"}, {"t": "Implement FlashAttention-style tiled attention with HBM-efficient memory access.", "k": "code"}, {"t": "Write a Swin Transformer window partition and shifted window attention module.", "k": "code"}, {"t": "Implement a patch embedding layer for ViT that handles variable image sizes.", "k": "code"}, {"t": "Write a cross-attention module for conditioning a decoder on encoder features.", "k": "code"}, {"t": "Implement a Transformer encoder-decoder for image captioning.", "k": "code"}, {"t": "Write a benchmark comparing attention complexity: dense O(n²) vs linear attention on long sequences.", "k": "code"}, {"t": "What is the attention sink phenomenon in LLMs? How does it affect KV cache design?", "k": "theory"}, {"t": "Explain sliding window attention (Longformer). How does it handle long sequences?", "k": "theory"}, {"t": "What is mixture of experts (MoE) in transformers? How does sparse routing work?", "k": "theory"}, {"t": "What is a register in DINOv2/ViT? How do global registers improve feature quality?", "k": "theory"}, {"t": "Explain Hyena/Mamba as state-space alternatives to attention. What trade-offs do they make?", "k": "theory"}],
+  'm07': [{"t": "What are the key design principles when building a production deep learning architecture?", "k": "theory"}, {"t": "Explain neural architecture search: differentiable (DARTS), evolutionary, and RL-based approaches.", "k": "theory"}, {"t": "What is compound scaling in EfficientNet? How do you find the optimal scaling coefficients?", "k": "theory"}, {"t": "Walk through MobileNetV1 → V2 → V3 and explain what each version improves.", "k": "theory"}, {"t": "What is a squeeze-and-excitation block? How does it add channel-wise attention with few params?", "k": "theory"}, {"t": "Design a backbone targeting under 10ms latency on Jetson Orin. What decisions do you make?", "k": "theory"}, {"t": "Explain FLOPs, MACs, and memory bandwidth. How do you profile a model's compute cost?", "k": "theory"}, {"t": "What is network pruning? Compare structured vs unstructured pruning for real speedup on hardware.", "k": "theory"}, {"t": "Explain post-training quantization (PTQ) vs quantization-aware training (QAT).", "k": "theory"}, {"t": "What is once-for-all (OFA) network? How does a supernet serve multiple hardware targets?", "k": "theory"}, {"t": "Explain knowledge distillation architecture design: how do you match intermediate feature maps?", "k": "theory"}, {"t": "What is CBAM (Convolutional Block Attention Module)? Compare with SE blocks.", "k": "theory"}, {"t": "What is the difference between latency, throughput, and memory bandwidth bottlenecks?", "k": "theory"}, {"t": "Explain ShuffleNet: group convolution + channel shuffle to reduce computation.", "k": "theory"}, {"t": "What is a ghost module (GhostNet)? How does it generate more features cheaply?", "k": "theory"}, {"t": "Implement a MobileNetV2 inverted residual block and verify parameter/FLOP counts.", "k": "code"}, {"t": "Write a structured pruning script that removes channels with lowest L1 norm.", "k": "code"}, {"t": "Write a script to benchmark model latency (P50, P95), throughput, and GPU memory.", "k": "code"}, {"t": "Implement QAT (quantization-aware training) for a small CNN using PyTorch's FakeQuantize.", "k": "code"}, {"t": "Write a FLOP counter for any PyTorch model using register_forward_hook.", "k": "code"}, {"t": "Implement a MobileNetV3 large variant from scratch including SE blocks and hard-swish.", "k": "code"}, {"t": "Write a layer sensitivity analysis: measure accuracy drop when pruning each layer by 50%.", "k": "code"}, {"t": "Implement a feature distillation loss: match intermediate feature maps between teacher and student.", "k": "code"}, {"t": "Build a NAS-lite search over kernel size and channel width using random search on CIFAR-10.", "k": "code"}, {"t": "Write a model comparison tool that plots latency vs accuracy for 5 models on the same hardware.", "k": "code"}, {"t": "What is the roofline model? How does it help classify whether a model is compute or memory bound?", "k": "theory"}, {"t": "Explain activation functions: ReLU, GELU, SiLU/Swish. When do non-ReLU activations help?", "k": "theory"}, {"t": "What is mixed precision training? What is BF16 and why is it preferred over FP16 for training?", "k": "theory"}, {"t": "What is a look-up table (LUT) for inference? How does binary neural networks exploit it?", "k": "theory"}, {"t": "What is the lottery ticket hypothesis? Why does it matter for pruning?", "k": "theory"}],
+  'm08': [{"t": "Explain data parallelism vs model parallelism. When do you need model parallelism?", "k": "theory"}, {"t": "What is DDP (DistributedDataParallel) in PyTorch? How does gradient synchronization work?", "k": "theory"}, {"t": "Explain mixed precision training (FP16/BF16). Why is a gradient scaler needed with FP16?", "k": "theory"}, {"t": "What is gradient checkpointing? How does it trade compute for memory?", "k": "theory"}, {"t": "What is FSDP (Fully Sharded Data Parallel)? How does it reduce memory vs DDP?", "k": "theory"}, {"t": "Explain gradient accumulation. How does it simulate larger batch sizes?", "k": "theory"}, {"t": "What is pipeline parallelism (GPipe, PipeDream)? How does it split model stages across devices?", "k": "theory"}, {"t": "What is the linear scaling rule for learning rate with batch size? Where does it break?", "k": "theory"}, {"t": "Explain ZeRO optimization stages 1/2/3 in DeepSpeed. What does each stage shard?", "k": "theory"}, {"t": "What is torch.compile? How does it differ from TorchScript in optimization approach?", "k": "theory"}, {"t": "Explain activation checkpointing using PyTorch's checkpoint() utility.", "k": "theory"}, {"t": "How do you debug NaN losses during training? Give a systematic checklist.", "k": "theory"}, {"t": "What is the difference between synchronous and asynchronous gradient updates in distributed training?", "k": "theory"}, {"t": "Explain tensor parallelism: how do you split a weight matrix across multiple GPUs?", "k": "theory"}, {"t": "What is expert parallelism for MoE models? How does routing interact with parallelism?", "k": "theory"}, {"t": "Implement DDP training with torchrun for multi-GPU ViT training including proper seed handling.", "k": "code"}, {"t": "Write a training script using torch.cuda.amp for automatic mixed precision with gradient scaling.", "k": "code"}, {"t": "Implement gradient accumulation in a training loop and verify it matches larger batch training.", "k": "code"}, {"t": "Implement a custom training loop with gradient clipping, LR warmup, and cosine decay.", "k": "code"}, {"t": "Write a distributed sampler that ensures no data overlap across GPUs per epoch.", "k": "code"}, {"t": "Set up FSDP for a ViT model: wrapping policy, sharding strategy, mixed precision config.", "k": "code"}, {"t": "Write a memory profiler that tracks peak GPU memory per layer during a forward pass.", "k": "code"}, {"t": "Implement activation checkpointing for a transformer model using gradient checkpoint.", "k": "code"}, {"t": "Write a benchmark comparing DDP vs FSDP on a large model in terms of memory and throughput.", "k": "code"}, {"t": "Implement a simple parameter server simulation with 2 workers and 1 server.", "k": "code"}, {"t": "What is the all-reduce operation? Compare ring-allreduce vs tree-allreduce.", "k": "theory"}, {"t": "What is gradient compression? Explain top-k sparsification and 1-bit SGD.", "k": "theory"}, {"t": "What is the stale gradient problem in asynchronous SGD? How does async Adam mitigate it?", "k": "theory"}, {"t": "Explain NCCL: what communication primitives does it provide and how does it use NVLink?", "k": "theory"}, {"t": "What is elastic training and fault tolerance? How does PyTorch Elastic handle worker failure?", "k": "theory"}],
+  'm09': [{"t": "Explain the motivation for self-supervised learning. Why is it important for vision?", "k": "theory"}, {"t": "Explain InfoNCE (contrastive loss). What makes positive and negative pairs? Derive the loss.", "k": "theory"}, {"t": "How does SimCLR work? Explain augmentation, projection head, and NT-Xent loss.", "k": "theory"}, {"t": "Explain MoCo: how does the momentum encoder and memory queue solve batch size constraints?", "k": "theory"}, {"t": "What is BYOL? How does it learn without negative pairs and avoid collapse?", "k": "theory"}, {"t": "Explain MAE (Masked Autoencoders): masking ratio, reconstruction target, why it works.", "k": "theory"}, {"t": "What is DINO? How does self-distillation with no labels produce semantic features?", "k": "theory"}, {"t": "Explain CLIP: how does contrastive language-image pretraining enable zero-shot classification?", "k": "theory"}, {"t": "What is VICReg? How does it prevent collapse using variance, invariance, covariance terms?", "k": "theory"}, {"t": "What is DINOv2? What recipe improvements over DINO produce stronger universal features?", "k": "theory"}, {"t": "What is JEPA (Joint-Embedding Predictive Architecture)? How does it differ from MAE and SimCLR?", "k": "theory"}, {"t": "Explain the collapse problem in self-supervised learning. What mechanisms prevent it?", "k": "theory"}, {"t": "What is the role of the projection head in SimCLR? Why is it removed at evaluation time?", "k": "theory"}, {"t": "Compare generative (MAE) vs discriminative (SimCLR) pretraining. What tasks favor each?", "k": "theory"}, {"t": "What is ALIGN? How does it scale CLIP-style pretraining to noisy web data at huge scale?", "k": "theory"}, {"t": "Implement SimCLR augmentation pipeline (crop, color jitter, Gaussian blur) in PyTorch.", "k": "code"}, {"t": "Implement NT-Xent (normalized temperature-scaled cross entropy) loss from scratch.", "k": "code"}, {"t": "Implement a MoCo v2 training loop with momentum encoder update and memory queue.", "k": "code"}, {"t": "Write a self-supervised evaluation: train a linear probe on frozen features and measure accuracy.", "k": "code"}, {"t": "Implement BYOL with stop-gradient, exponential moving average, and predictor head.", "k": "code"}, {"t": "Write a masked autoencoder (MAE) with random patch masking and ViT backbone.", "k": "code"}, {"t": "Implement CLIP zero-shot classification: encode text prompts, compute cosine similarity to images.", "k": "code"}, {"t": "Write a contrastive loss that handles hard negative mining.", "k": "code"}, {"t": "Implement VICReg loss: variance, invariance, and covariance terms.", "k": "code"}, {"t": "Build a CLIP-based image retrieval system: encode a gallery, retrieve top-k for a text query.", "k": "code"}, {"t": "What is the uniformity-alignment framework for analyzing contrastive representations?", "k": "theory"}, {"t": "What is spectral collapse in SSL? How do dead neurons and feature correlation relate?", "k": "theory"}, {"t": "Explain image-text contrastive pretraining data curation. How does quality filter affect CLIP?", "k": "theory"}, {"t": "What is FLAVA? How does it combine unimodal and multimodal pretraining objectives?", "k": "theory"}, {"t": "What is SigLIP? How does it replace the softmax contrastive with sigmoid and why?", "k": "theory"}],
+  'm10': [{"t": "Explain CLIP architecture: dual encoder for image and text, training objective, zero-shot use.", "k": "theory"}, {"t": "What is zero-shot classification with CLIP? How do you design prompts for best performance?", "k": "theory"}, {"t": "Explain BLIP-2: what is Q-Former and how does it bridge the vision-language modality gap?", "k": "theory"}, {"t": "What is LLaVA? How does it connect a CLIP vision encoder to a large language model?", "k": "theory"}, {"t": "Explain Flamingo: how does cross-attention gating condition a frozen LLM on visual tokens?", "k": "theory"}, {"t": "What is visual grounding? Explain referring expression comprehension (REC) and phrase grounding.", "k": "theory"}, {"t": "Explain visual question answering (VQA): datasets, metrics, and how modern VLMs approach it.", "k": "theory"}, {"t": "What is image captioning? Explain CIDEr, BLEU, and METEOR evaluation metrics.", "k": "theory"}, {"t": "What is CogVLM? How does it add visual expert modules to a LLM without losing language ability?", "k": "theory"}, {"t": "Explain hallucination in VLMs: causes, evaluation benchmarks (POPE, HallusionBench), mitigation.", "k": "theory"}, {"t": "What is InternVL? How does it align the vision encoder more closely with the LLM embedding space?", "k": "theory"}, {"t": "What is ImageBind? How does it align six modalities (audio, depth, IMU, text, image, video)?", "k": "theory"}, {"t": "Explain Phi-3.5-Vision. How does a small VLM achieve strong performance through data quality?", "k": "theory"}, {"t": "What is a resampler/Perceiver Resampler? How does it compress visual tokens for LLM efficiency?", "k": "theory"}, {"t": "What is chain-of-thought prompting for VLMs? How does it improve complex visual reasoning?", "k": "theory"}, {"t": "Implement zero-shot image classification using OpenCLIP with custom class text prompts.", "k": "code"}, {"t": "Implement CLIP-based image retrieval: encode a gallery at inference, retrieve top-k by cosine sim.", "k": "code"}, {"t": "Fine-tune a CLIP model on a medical imaging domain using contrastive fine-tuning.", "k": "code"}, {"t": "Write a LLaVA-style inference pipeline: preprocess image, format prompt, generate caption.", "k": "code"}, {"t": "Implement a VQA evaluation pipeline: load a model, run on VQAv2 val, compute accuracy.", "k": "code"}, {"t": "Write a visual grounding pipeline using Grounding DINO: text prompt → bounding boxes.", "k": "code"}, {"t": "Implement an image-text retrieval benchmark on MS-COCO 5k: measure R@1, R@5, R@10.", "k": "code"}, {"t": "Write a prompt engineering comparison: evaluate 5 different prompt templates on CLIP zero-shot.", "k": "code"}, {"t": "Build a simple VQA system using a VLM API and evaluate on a mini VQA set.", "k": "code"}, {"t": "Implement a CLIP-based anomaly detection system: compute similarity to normal/abnormal prompts.", "k": "code"}, {"t": "What is document understanding with VLMs? How does DocVQA differ from natural image VQA?", "k": "theory"}, {"t": "Explain OCR-free document understanding. How does Donut process document images?", "k": "theory"}, {"t": "What is a vision-language navigation (VLN) task? How do models learn to follow instructions?", "k": "theory"}, {"t": "What is text-image retrieval vs image-text retrieval? Are they symmetric in CLIP?", "k": "theory"}, {"t": "Explain the LLaVA-1.5 improvements: higher resolution, MLP connector, richer instruction data.", "k": "theory"}],
+  'm11': [{"t": "Explain the GAN training objective: generator and discriminator losses. What is Nash equilibrium?", "k": "theory"}, {"t": "What is mode collapse in GANs? What architectural and training tricks mitigate it?", "k": "theory"}, {"t": "Explain the VAE objective: ELBO, reconstruction loss, and KL divergence. Reparameterization trick.", "k": "theory"}, {"t": "What is a diffusion model? Explain the forward noising process and the reverse denoising process.", "k": "theory"}, {"t": "Explain DDPM: the noise prediction objective and how it connects to score matching.", "k": "theory"}, {"t": "What is classifier-free guidance (CFG)? How does the guidance scale trade off quality and diversity?", "k": "theory"}, {"t": "Explain latent diffusion model (Stable Diffusion): why process in latent space instead of pixel space?", "k": "theory"}, {"t": "What is ControlNet? How does it add spatial conditioning to a frozen diffusion model?", "k": "theory"}, {"t": "Explain LoRA: how does decomposing weight updates into low-rank matrices reduce fine-tuning params?", "k": "theory"}, {"t": "What is DDIM sampling? How does it accelerate inference vs DDPM without retraining?", "k": "theory"}, {"t": "What is DreamBooth? How does it personalize a diffusion model for a specific subject?", "k": "theory"}, {"t": "Explain Consistency Models: how do they enable single-step generation from a diffusion model?", "k": "theory"}, {"t": "What metrics evaluate generative models: FID, IS, LPIPS, CLIP Score? What does each measure?", "k": "theory"}, {"t": "What is SDXL? How does it improve over SD 1.5 in terms of architecture and training?", "k": "theory"}, {"t": "Explain the difference between DDPM, DDIM, DPM-Solver, and flow matching samplers.", "k": "theory"}, {"t": "Implement a minimal DDPM training loop on MNIST with a simple U-Net noise predictor.", "k": "code"}, {"t": "Implement a variational autoencoder in PyTorch and visualize the latent space on MNIST.", "k": "code"}, {"t": "Write a FID computation pipeline using a pretrained Inception network.", "k": "code"}, {"t": "Implement DDIM sampling from a trained DDPM checkpoint and compare sample quality.", "k": "code"}, {"t": "Write a LoRA fine-tuning script for Stable Diffusion on a 20-image custom dataset.", "k": "code"}, {"t": "Implement classifier-free guidance for a conditional diffusion model.", "k": "code"}, {"t": "Write an image-to-image pipeline using Stable Diffusion with variable strength.", "k": "code"}, {"t": "Implement the noise schedule (linear, cosine) for a diffusion model from scratch.", "k": "code"}, {"t": "Write a textual inversion script to learn a new concept token for SD.", "k": "code"}, {"t": "Implement a GAN discriminator with spectral normalization and train on CIFAR-10.", "k": "code"}, {"t": "What is progressive GAN training? How does ProGAN grow the network resolution?", "k": "theory"}, {"t": "What is the U-Net architecture for diffusion? Why is it more suitable than a plain transformer?", "k": "theory"}, {"t": "Explain DiT (Diffusion Transformer): how does it replace U-Net with a transformer backbone?", "k": "theory"}, {"t": "What is Stable Diffusion XL Turbo / LCM? How do they achieve few-step generation?", "k": "theory"}, {"t": "What is a variational score distillation (VSD) loss used in text-to-3D generation?", "k": "theory"}],
+  'm12': [{"t": "Explain stereo vision: epipolar geometry, disparity map, and depth from stereo baseline.", "k": "theory"}, {"t": "What is monocular depth estimation? How do networks like MiDaS and Depth Anything handle scale ambiguity?", "k": "theory"}, {"t": "Explain NeRF: volume rendering, positional encoding, and how a scene is represented as a MLP.", "k": "theory"}, {"t": "What is 3D Gaussian Splatting? How does it represent scenes and why is it faster than NeRF?", "k": "theory"}, {"t": "Explain PointNet: how does it handle unordered point sets and achieve permutation invariance?", "k": "theory"}, {"t": "What is the difference between LiDAR point clouds and stereo-derived point clouds?", "k": "theory"}, {"t": "Explain Structure from Motion (SfM): feature matching, pose estimation, bundle adjustment.", "k": "theory"}, {"t": "What is depth completion? How do sparse LiDAR points get densified using RGB guidance?", "k": "theory"}, {"t": "What is Instant-NGP? How does hash encoding dramatically accelerate NeRF training?", "k": "theory"}, {"t": "Explain BEV (Bird's Eye View) representation. How is it used in autonomous driving perception?", "k": "theory"}, {"t": "What is multi-view stereo (MVS)? How does it reconstruct dense 3D from calibrated images?", "k": "theory"}, {"t": "What is VoxelNet? How does it process raw LiDAR point clouds for 3D object detection?", "k": "theory"}, {"t": "Explain occupancy networks. How do they represent 3D shapes as implicit fields?", "k": "theory"}, {"t": "What is Gaussian opacity fields? How does it extend 3DGS to handle reflective surfaces?", "k": "theory"}, {"t": "Explain the projective geometry behind perspective-n-point (PnP) pose estimation.", "k": "theory"}, {"t": "Implement stereo disparity computation using cv2.StereoSGBM and compute a depth map.", "k": "code"}, {"t": "Write code to load, visualize, and downsample a LiDAR point cloud using Open3D.", "k": "code"}, {"t": "Implement a simple NeRF from scratch: MLP, positional encoding, volume rendering.", "k": "code"}, {"t": "Write a 3D point cloud registration using ICP (Iterative Closest Point) in Open3D.", "k": "code"}, {"t": "Implement projection of 3D LiDAR points onto a camera image using calibration matrices.", "k": "code"}, {"t": "Write a depth map evaluation pipeline: compute AbsRel, SqRel, RMSE from predictions.", "k": "code"}, {"t": "Implement a simple occupancy grid from a LiDAR scan for 2D mapping.", "k": "code"}, {"t": "Write a camera pose estimation pipeline using PnP + RANSAC on 2D-3D correspondences.", "k": "code"}, {"t": "Implement a voxel downsampling and normal estimation pipeline for a point cloud.", "k": "code"}, {"t": "Write a NeRF-like ray marching renderer that visualizes a density field.", "k": "code"}, {"t": "What is SplatterImage? How does it reconstruct a 3D Gaussian from a single image?", "k": "theory"}, {"t": "Explain depth anything v2: how does it improve over v1 for fine-grained depth?", "k": "theory"}, {"t": "What is metric depth estimation vs relative depth? How do ZoeDepth and UniDepth handle it?", "k": "theory"}, {"t": "What is a surround-view camera system? How does BEV fusion of 6 cameras work?", "k": "theory"}, {"t": "What is semantic 3D reconstruction? How does Gaussian splatting get combined with semantics?", "k": "theory"}],
+  'm13': [{"t": "Explain LiDAR-camera fusion: early fusion, late fusion, and deep fusion approaches.", "k": "theory"}, {"t": "What is multi-object tracking (MOT)? Explain tracking-by-detection and Hungarian assignment.", "k": "theory"}, {"t": "Explain the Kalman filter: prediction and update steps for object tracking.", "k": "theory"}, {"t": "What is DeepSORT? How does appearance embedding improve data association over SORT?", "k": "theory"}, {"t": "Explain BEVFusion: how does it unify camera and LiDAR features in BEV space?", "k": "theory"}, {"t": "What is temporal sensor fusion? How do timestamp alignment and latency affect accuracy?", "k": "theory"}, {"t": "Explain camera intrinsic and extrinsic calibration. How does cv2.calibrateCamera work?", "k": "theory"}, {"t": "What is IMU preintegration? How does it fill sensor gaps between LiDAR scans?", "k": "theory"}, {"t": "Explain occupancy prediction vs object detection for autonomous driving. Advantages of occupancy.", "k": "theory"}, {"t": "What is HD map-based perception vs map-free perception? What does each assume?", "k": "theory"}, {"t": "What are AMOTA, MOTA, and MOTP metrics for tracking evaluation?", "k": "theory"}, {"t": "Explain the difference between online and offline multi-object tracking algorithms.", "k": "theory"}, {"t": "What is radar-camera fusion? How does radar provide velocity and range in adverse conditions?", "k": "theory"}, {"t": "Design a full perception stack for a highway autonomous driving system.", "k": "theory"}, {"t": "What is 4D radar? How does it provide elevation compared to 2D radar?", "k": "theory"}, {"t": "Implement SORT from scratch: Kalman filter prediction, IoU-based assignment, track management.", "k": "code"}, {"t": "Implement projection of 3D LiDAR points onto a camera image and draw them as a colored point cloud.", "k": "code"}, {"t": "Write a multi-camera BEV projection using homography or IPM (Inverse Perspective Mapping).", "k": "code"}, {"t": "Implement a Kalman filter for 2D tracking (constant velocity model) from scratch.", "k": "code"}, {"t": "Write a Hungarian algorithm for assignment using scipy.optimize.linear_sum_assignment.", "k": "code"}, {"t": "Implement a simple track lifecycle manager: create, update, and delete tracks based on hit/miss count.", "k": "code"}, {"t": "Write a camera-LiDAR extrinsic calibration tool using checkerboard targets.", "k": "code"}, {"t": "Implement an occupancy grid from a sequence of 3D bounding box detections.", "k": "code"}, {"t": "Write a multi-sensor timestamp synchronization pipeline with interpolation.", "k": "code"}, {"t": "Implement evaluation of a MOT result using CLEAR MOT metrics.", "k": "code"}, {"t": "What is the nuScenes detection benchmark? What metrics does it use and what's different from COCO?", "k": "theory"}, {"t": "Explain rollout-based closed-loop evaluation vs open-loop evaluation for autonomous driving.", "k": "theory"}, {"t": "What is a scenario coverage test for AV perception? How does simulation supplement real data?", "k": "theory"}, {"t": "What is CARLA simulator? How is it used for end-to-end AV model development?", "k": "theory"}, {"t": "Explain the long-tail problem in AV perception. How do synthetic data and active learning help?", "k": "theory"}],
+  'm14': [{"t": "Explain the model deployment pipeline: training → export → optimization → runtime.", "k": "theory"}, {"t": "What is ONNX? Why is it used as an intermediate representation for cross-framework deployment?", "k": "theory"}, {"t": "Explain TensorRT optimization: layer fusion, precision calibration, and kernel auto-tuning.", "k": "theory"}, {"t": "What is INT8 quantization calibration? How do you collect calibration data and what is the accuracy impact?", "k": "theory"}, {"t": "Explain dynamic vs static input shapes in TensorRT. When does dynamic shape add overhead?", "k": "theory"}, {"t": "What is structured pruning vs weight pruning? Which actually achieves speedup on hardware?", "k": "theory"}, {"t": "Explain torch.compile and TorchScript. How do they differ in optimization approach?", "k": "theory"}, {"t": "What is speculative decoding? How does it speed up LLM inference?", "k": "theory"}, {"t": "Explain Triton Inference Server: supported backends, dynamic batching, model ensemble.", "k": "theory"}, {"t": "What is PagedAttention (vLLM)? How does it improve GPU memory efficiency for LLM serving?", "k": "theory"}, {"t": "Explain ONNX Runtime: execution providers, graph optimizations, and quantization support.", "k": "theory"}, {"t": "What is TensorRT-LLM? How does it optimize LLM inference on NVIDIA GPUs?", "k": "theory"}, {"t": "What is OpenVINO? How does it optimize models for Intel hardware?", "k": "theory"}, {"t": "Explain edge deployment on Jetson Orin: TensorRT, DLA, memory bandwidth constraints.", "k": "theory"}, {"t": "What is model serving at scale? Explain autoscaling, load balancing, and SLA constraints.", "k": "theory"}, {"t": "Export a PyTorch model to ONNX, run inference with ONNX Runtime, and verify output matches.", "k": "code"}, {"t": "Build a TensorRT engine from an ONNX model with FP16 precision and measure latency vs PyTorch.", "k": "code"}, {"t": "Write a TensorRT inference wrapper in C++ that loads an engine, allocates device buffers, runs inference.", "k": "code"}, {"t": "Implement INT8 calibration in TensorRT using a custom calibration dataset class.", "k": "code"}, {"t": "Write a model benchmarking harness measuring P50, P95, P99 latency and throughput.", "k": "code"}, {"t": "Profile a PyTorch model using torch.profiler and identify the top-3 bottleneck operations.", "k": "code"}, {"t": "Write a Triton Inference Server config.pbtxt and test server throughput with perf_client.", "k": "code"}, {"t": "Implement structured pruning: remove filters with smallest L1 norm and fine-tune.", "k": "code"}, {"t": "Write a FastAPI-based model serving endpoint with request batching and async inference.", "k": "code"}, {"t": "Implement a model pipeline (preprocess → inference → postprocess) in C++ using ONNX Runtime.", "k": "code"}, {"t": "How do you profile GPU kernels using Nsight Systems and Nsight Compute?", "k": "theory"}, {"t": "What is continuous batching in LLM serving? How does it improve GPU utilization?", "k": "theory"}, {"t": "Explain AWQ and GPTQ quantization for LLMs. How do they preserve accuracy at 4-bit?", "k": "theory"}, {"t": "What is model serving SLA? How do you measure P99 latency under bursty load?", "k": "theory"}, {"t": "What is a TensorRT plugin? When do you need one and what does implementation require?", "k": "theory"}],
+  'm15': [{"t": "What is a foundation model? What properties (scale, generalization, emergence) define them?", "k": "theory"}, {"t": "Explain PEFT methods: LoRA, prefix tuning, prompt tuning, and adapter layers.", "k": "theory"}, {"t": "What is LoRA rank? How does a lower rank reduce parameters? When does rank matter for quality?", "k": "theory"}, {"t": "Explain instruction tuning. How does it convert a base model into an instruction-following assistant?", "k": "theory"}, {"t": "What is RLHF? Explain the reward model training and PPO fine-tuning loop.", "k": "theory"}, {"t": "Explain DPO (Direct Preference Optimization): how does it avoid training a reward model explicitly?", "k": "theory"}, {"t": "What is RAG? Explain dense retrieval, chunking, embedding, and generation pipeline.", "k": "theory"}, {"t": "What is QLoRA? How does NF4 quantization + LoRA enable fine-tuning billion-parameter models on one GPU?", "k": "theory"}, {"t": "What are the challenges of fine-tuning VLMs vs pure LLMs?", "k": "theory"}, {"t": "Explain catastrophic forgetting. How do LoRA and replay buffers mitigate it?", "k": "theory"}, {"t": "What is GRPO (Group Relative Policy Optimization)? How does it train reasoning models like DeepSeek-R1?", "k": "theory"}, {"t": "What is a system prompt and how does it differ from user prompt in instruction fine-tuning?", "k": "theory"}, {"t": "Explain the difference between parameter-efficient and full fine-tuning. When is each preferred?", "k": "theory"}, {"t": "What is Orpo (Odds Ratio Preference Optimization)? How does it simplify DPO training?", "k": "theory"}, {"t": "What is Constitutional AI? How does RLAIF differ from RLHF?", "k": "theory"}, {"t": "Implement LoRA fine-tuning of a VLM using HuggingFace PEFT for a classification task.", "k": "code"}, {"t": "Implement QLoRA fine-tuning of LLaMA-3 on an instruction dataset using bitsandbytes.", "k": "code"}, {"t": "Implement a RAG pipeline for document Q&A using LangChain, FAISS, and a HuggingFace embedder.", "k": "code"}, {"t": "Write an instruction dataset formatter for a custom task into the Alpaca JSON format.", "k": "code"}, {"t": "Implement DPO training loop with a reference model frozen and a policy model updated.", "k": "code"}, {"t": "Write a reward model training pipeline from preference data using Bradley-Terry loss.", "k": "code"}, {"t": "Build a multi-turn conversation fine-tuning dataset and train a chat model with SFT.", "k": "code"}, {"t": "Implement a LoRA merge-and-unload to create a standalone fine-tuned model checkpoint.", "k": "code"}, {"t": "Write a hyperparameter sweep for LoRA rank and alpha using W&B sweeps.", "k": "code"}, {"t": "Build an evaluation pipeline for an instruction-tuned model using LM-eval-harness.", "k": "code"}, {"t": "What is a mixture-of-LoRA (MoLoRA)? How does it route to different LoRA adapters per input?", "k": "theory"}, {"t": "What is the role of temperature, top-p, and top-k in LLM decoding? How do they affect diversity?", "k": "theory"}, {"t": "Explain chain-of-thought prompting and few-shot prompting. When does CoT help most?", "k": "theory"}, {"t": "What is LLM alignment tax? Why does RLHF sometimes hurt performance on capability benchmarks?", "k": "theory"}, {"t": "What is an AI agent? How does ReAct-style prompting combine reasoning and tool use?", "k": "theory"}],
+  'm16': [{"t": "What is MLOps? List the core stages of an ML production lifecycle.", "k": "theory"}, {"t": "Explain experiment tracking with MLflow or W&B. What artifacts and metrics should you log?", "k": "theory"}, {"t": "What is a model registry? How does it manage model versions, staging, and production promotion?", "k": "theory"}, {"t": "Explain data versioning with DVC. How does it integrate with Git for reproducible experiments?", "k": "theory"}, {"t": "What is a feature store? How does it solve training-serving skew?", "k": "theory"}, {"t": "Explain CI/CD for machine learning. What does a model validation pipeline look like before deployment?", "k": "theory"}, {"t": "What is concept drift and data drift? How do you detect and respond to each?", "k": "theory"}, {"t": "What is shadow deployment (shadow mode)? How do you safely validate a new model?", "k": "theory"}, {"t": "Explain A/B testing for ML models. What statistical considerations apply?", "k": "theory"}, {"t": "What is a canary deployment for ML models? How do you roll out gradually while monitoring?", "k": "theory"}, {"t": "Explain model card and datasheet. Why are they important for responsible AI deployment?", "k": "theory"}, {"t": "What is ML observability? How does it differ from infrastructure monitoring?", "k": "theory"}, {"t": "Explain online learning and continual learning. How do you update a model in production?", "k": "theory"}, {"t": "What is a data pipeline for ML? Explain ETL, feature engineering, and quality checks.", "k": "theory"}, {"t": "What is a vector database? How does it enable efficient similarity search for RAG?", "k": "theory"}, {"t": "Write a W&B experiment tracking setup in PyTorch that logs loss curves, confusion matrix, images.", "k": "code"}, {"t": "Implement a data drift detector using statistical tests (KS test, PSI) on feature distributions.", "k": "code"}, {"t": "Write a FastAPI serving endpoint with model loading, preprocessing, inference, and health check.", "k": "code"}, {"t": "Implement a shadow deployment system: route N% of traffic to a new model and compare results.", "k": "code"}, {"t": "Write a DVC pipeline: track data, run preprocessing, train model, evaluate, version artifacts.", "k": "code"}, {"t": "Set up a GitHub Actions CI workflow that trains a model, evaluates it, and gates on accuracy.", "k": "code"}, {"t": "Write a model monitoring dashboard using Evidently AI or custom Prometheus metrics.", "k": "code"}, {"t": "Implement a Triton model ensemble: chained preprocessing + inference + postprocessing.", "k": "code"}, {"t": "Write an MLflow experiment with hyperparameter logging, artifact saving, and model registry push.", "k": "code"}, {"t": "Implement a feature store lookup for real-time serving using Redis as the online store.", "k": "code"}, {"t": "What is ONNX Model Zoo? How do you pick a model for a target hardware profile?", "k": "theory"}, {"t": "Explain Kubeflow Pipelines. How does it orchestrate multi-step ML workflows on Kubernetes?", "k": "theory"}, {"t": "What is blue-green deployment vs canary deployment for ML models?", "k": "theory"}, {"t": "What is responsible AI monitoring? How do you track fairness metrics in production?", "k": "theory"}, {"t": "What is a model scorecard? What evaluation dimensions should it cover?", "k": "theory"}],
+  'm17': [{"t": "Design a real-time face recognition system for access control. Cover pipeline, latency, fallbacks.", "k": "theory"}, {"t": "Design an image moderation system at 1M images/day: ML model, queuing, fallback, human review.", "k": "theory"}, {"t": "Design a visual search engine (reverse image search) at Google Photos scale.", "k": "theory"}, {"t": "Design a video surveillance system with anomaly detection. Focus on edge vs cloud tradeoffs.", "k": "theory"}, {"t": "Design a defect detection system for manufacturing at < 100ms latency and > 99.5% recall.", "k": "theory"}, {"t": "How would you build a medical imaging AI system meeting FDA regulatory requirements?", "k": "theory"}, {"t": "Design the data pipeline for training a large-scale vision model from 100M web images.", "k": "theory"}, {"t": "Design a multi-camera people counting system for a retail store with privacy compliance.", "k": "theory"}, {"t": "How do you handle class imbalance in a production fraud detection vision model?", "k": "theory"}, {"t": "Design an AutoML system for vision that selects and tunes models for a new domain.", "k": "theory"}, {"t": "Design a document intelligence pipeline: OCR + layout understanding + information extraction.", "k": "theory"}, {"t": "How would you build a continual learning system that updates a vision model from production feedback?", "k": "theory"}, {"t": "Explain bias and fairness in CV systems. How do you audit and mitigate demographic bias?", "k": "theory"}, {"t": "Design a satellite image analysis pipeline for crop monitoring at country scale.", "k": "theory"}, {"t": "How do you design a multi-modal retrieval system for an e-commerce product catalog?", "k": "theory"}, {"t": "Write a system design document for a real-time sports broadcast AI overlay system.", "k": "theory"}, {"t": "Design a model serving infrastructure that handles 10K requests/second with 50ms P99 SLA.", "k": "theory"}, {"t": "How would you architect a self-improving vision system using active learning and human feedback?", "k": "theory"}, {"t": "Design a federated learning system for medical image classification across 10 hospitals.", "k": "theory"}, {"t": "How do you version and reproduce ML experiments at scale across a team of 20 engineers?", "k": "theory"}, {"t": "What is the ML platform stack? List the components from data ingestion to monitoring.", "k": "theory"}, {"t": "How do you design an evaluation framework for a complex multi-stage vision pipeline?", "k": "theory"}, {"t": "Design a real-time licence plate recognition system for highway toll collection.", "k": "theory"}, {"t": "How do you handle GDPR compliance for a face recognition system in production?", "k": "theory"}, {"t": "Design a scene understanding system for a drone delivery navigation task.", "k": "theory"}, {"t": "What are the tradeoffs between batch inference vs real-time serving for different use cases?", "k": "theory"}, {"t": "How do you build an internal labeling platform with quality control and inter-annotator agreement?", "k": "theory"}, {"t": "Design a model card and deployment approval process for an AI model in healthcare.", "k": "theory"}, {"t": "How would you design a test suite for a production vision model? What kinds of tests matter?", "k": "theory"}, {"t": "Design a vision model rollout plan: shadow mode → canary → gradual → full traffic.", "k": "theory"}],
+  'm18': [{"t": "How do you systematically read a deep learning paper? Describe your 3-pass reading strategy.", "k": "theory"}, {"t": "What makes a strong experimental section in a vision paper? What ablations are essential?", "k": "theory"}, {"t": "Explain the ImageNet benchmark and its historical importance. Why was it central to vision progress?", "k": "theory"}, {"t": "What is the COCO benchmark? What does mAP@0.5:0.95 measure vs mAP@0.5?", "k": "theory"}, {"t": "Explain how to perform a rigorous ablation study. What variables do you isolate and why?", "k": "theory"}, {"t": "What is transfer learning from ImageNet? When does training from scratch beat fine-tuning?", "k": "theory"}, {"t": "How do you write a strong baseline for a new vision dataset?", "k": "theory"}, {"t": "What is the distinction between accuracy, robustness, and calibration in vision model evaluation?", "k": "theory"}, {"t": "Explain distribution shift in benchmarks: why do COCO and in-the-wild numbers often diverge?", "k": "theory"}, {"t": "What is the scaling law for vision models? How does loss scale with compute, data, and parameters?", "k": "theory"}, {"t": "Explain the Chinchilla scaling law and how it changed LLM training budgets.", "k": "theory"}, {"t": "What is the Waymo Open Dataset benchmark for 3D detection? What metrics does it use?", "k": "theory"}, {"t": "How do you identify the key contribution of a paper vs incremental engineering?", "k": "theory"}, {"t": "What is an oracle experiment and why is it useful during research?", "k": "theory"}, {"t": "What is overfitting to benchmark? Give examples and how the community detects it.", "k": "theory"}, {"t": "Reproduce ResNet-18 training on CIFAR-100: data loading, augmentation, training loop, LR schedule, evaluation.", "k": "code"}, {"t": "Implement a paper reproduction checklist: what to verify before claiming a result is reproduced.", "k": "theory"}, {"t": "Write a Python script to scrape and filter Arxiv CV papers using the API by keyword and date.", "k": "code"}, {"t": "Implement an automated baseline comparison table generator from a CSV of results.", "k": "code"}, {"t": "Write a visualization tool for ablation study results: bar charts with error bars and significance.", "k": "code"}, {"t": "Build a benchmark runner that tests 5 models on the same dataset and outputs a comparison table.", "k": "code"}, {"t": "Write a learning curve plotter that shows train/val loss and detects overfitting inflection points.", "k": "code"}, {"t": "Implement a CKA (Centered Kernel Alignment) similarity metric between two network layers.", "k": "code"}, {"t": "Write a t-SNE/UMAP visualization pipeline for model embeddings on a test set.", "k": "code"}, {"t": "Implement a gradient-based attribution method (GradCAM) to explain model predictions.", "k": "code"}, {"t": "What is the difference between a dataset benchmark and a real-world evaluation? Why do both matter?", "k": "theory"}, {"t": "What is the NeurIPS / CVPR / ICCV paper acceptance process? What do reviewers look for?", "k": "theory"}, {"t": "What is a leaderboard and why can it distort research priorities?", "k": "theory"}, {"t": "What is negative transfer and when does multi-task learning hurt?", "k": "theory"}, {"t": "Explain the difference between few-shot, zero-shot, and one-shot evaluation paradigms.", "k": "theory"}]
+};
+const MODULES_TOTALS = {'m01': 30, 'm02': 30, 'm03': 30, 'm04': 30, 'm05': 30, 'm06': 30, 'm07': 30, 'm08': 30, 'm09': 30, 'm10': 30, 'm11': 30, 'm12': 30, 'm13': 30, 'm14': 30, 'm15': 30, 'm16': 30, 'm17': 30, 'm18': 30};
+
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem(SKEY) || '{}'); } catch(e) {}
+
+let currentMid = null;
+let rendered = {};
+
+function goToIssue(key) {
+  const inp = document.getElementById('iss-' + key);
+  if (!inp) return;
+  const n = parseInt(inp.value.trim());
+  if (!n || n < 1) {
+    inp.focus();
+    inp.style.borderColor = 'var(--ph3)';
+    setTimeout(() => { inp.style.borderColor = ''; }, 800);
+    return;
+  }
+  window.open('https://github.com/' + GH_REPO + '/issues/' + n, '_blank', 'noopener');
+}
+
+function saveIssue(key) {
+  const inp = document.getElementById('iss-' + key);
+  if (!inp) return;
+  const n = inp.value.trim();
+  const btn = document.getElementById('issbtn-' + key);
+  if (n && parseInt(n) > 0) {
+    saved[key + '_iss'] = n;
+    if (btn) btn.classList.add('has-issue');
+  } else {
+    delete saved[key + '_iss'];
+    if (btn) btn.classList.remove('has-issue');
+  }
+  try { localStorage.setItem(SKEY, JSON.stringify(saved)); } catch(e) {}
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+}
+
+function renderModule(mid) {
+  if (rendered[mid]) return;
+  rendered[mid] = true;
+  const tbody = document.getElementById(mid + '-tbody');
+  if (!tbody) return;
+  const qs = MODULES_DATA[mid] || [];
+  tbody.innerHTML = '';
+  qs.forEach((item, i) => {
+    const key = mid + '_q' + i;
+    const isDone = saved[key] === true;
+    const savedIss = saved[key + '_iss'] || '';
+    const ty = item.k === 'code' ? 'code' : 'theory';
+    const tyClass = ty === 'code' ? 'type-code' : 'type-theory';
+    const qnum = 'Q' + String(i + 1).padStart(3, '0');
+    const hasIssue = savedIss ? ' has-issue' : '';
+    const tr = document.createElement('tr');
+    tr.className = 'q-row' + (isDone ? ' checked' : '');
+    tr.innerHTML =
+      '<td><div class="q-check' + (isDone ? ' checked' : '') + '" onclick="toggleQ(' + repr_js(key) + ',' + repr_js(mid) + ',this)"></div></td>' +
+      '<td class="q-num">' + qnum + '</td>' +
+      '<td class="q-text">' + escapeHtml(item.t) + '</td>' +
+      '<td><span class="q-type ' + tyClass + '">' + ty + '</span></td>' +
+      '<td>' +
+        '<div class="q-issue-cell">' +
+          '<input class="q-issue-input" id="iss-' + key + '" type="number" min="1" placeholder="#" value="' + escapeHtml(savedIss) + '" ' +
+            'onchange="saveIssue(' + repr_js(key) + ')" ' +
+            '/>' +
+          '<button class="q-issue-btn' + hasIssue + '" id="issbtn-' + key + '" onclick="saveIssue(' + repr_js(key) + ');goToIssue(' + repr_js(key) + ')">↗ open</button>' +
+        '</div>' +
+      '</td>';
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.q-issue-input').forEach(function(inp) {
+    inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { saveIssue(this.dataset.qkey); goToIssue(this.dataset.qkey); }
+    });
+  });
+  updateModuleProgress(mid);
+}
+
+function repr_js(s) { return JSON.stringify(s); }
+
+function toggleQ(key, mid, el) {
+  const row = el.closest('tr');
+  const isDone = !el.classList.contains('checked');
+  saved[key] = isDone;
+  try { localStorage.setItem(SKEY, JSON.stringify(saved)); } catch(e) {}
+  el.classList.toggle('checked', isDone);
+  row.classList.toggle('checked', isDone);
+  updateModuleProgress(mid);
+  updateGlobal();
+}
+
+function updateModuleProgress(mid) {
+  const total = MODULES_TOTALS[mid] || 0;
+  let done = 0;
+  for (let i = 0; i < total; i++) if (saved[mid + '_q' + i]) done++;
+  const pct = total ? Math.round(done / total * 100) : 0;
+  const prog = document.getElementById(mid + '-prog');
+  const bar = document.getElementById(mid + '-bar');
+  const barpct = document.getElementById(mid + '-barpct');
+  const status = document.getElementById(mid + '-status');
+  if (prog) prog.textContent = done + '/' + total;
+  if (bar) bar.style.width = pct + '%';
+  if (barpct) barpct.textContent = pct + '%';
+  if (status) {
+    if (done === 0) { status.textContent = 'Not started'; status.className = 'module-status status-notstarted'; }
+    else if (done === total && total > 0) { status.textContent = 'Complete ✓'; status.className = 'module-status status-done'; }
+    else { status.textContent = 'In progress'; status.className = 'module-status status-inprogress'; }
+  }
+}
+
+function updateGlobal() {
+  let totalDone = 0, modsDone = 0, totalQ = 0;
+  Object.keys(MODULES_TOTALS).forEach(mid => {
+    const t = MODULES_TOTALS[mid]; totalQ += t;
+    let d = 0;
+    for (let i = 0; i < t; i++) if (saved[mid + '_q' + i]) d++;
+    totalDone += d;
+    if (d === t && t > 0) modsDone++;
+  });
+  const pct = totalQ ? Math.round(totalDone / totalQ * 100) : 0;
+  const el_done = document.getElementById('gp-done');
+  const el_pct = document.getElementById('gp-pct');
+  const el_mods = document.getElementById('gp-mods');
+  const el_fill = document.getElementById('gp-fill');
+  if (el_done) el_done.textContent = totalDone;
+  if (el_pct) el_pct.textContent = pct + '%';
+  if (el_mods) el_mods.textContent = modsDone;
+  if (el_fill) el_fill.style.width = pct + '%';
+}
+
+function activateModule(mid) {
+  if (currentMid === mid) return;
+  if (currentMid) {
+    const prev = document.getElementById('view-' + currentMid);
+    if (prev) prev.classList.remove('active');
+    const prevNav = document.querySelector('.nav-mod[data-mid="' + currentMid + '"]');
+    if (prevNav) prevNav.classList.remove('active');
+  }
+  currentMid = mid;
+  renderModule(mid);
+  const view = document.getElementById('view-' + mid);
+  if (view) view.classList.add('active');
+  const nav = document.querySelector('.nav-mod[data-mid="' + mid + '"]');
+  if (nav) nav.classList.add('active');
+}
+
+// Nav click handlers
+document.querySelectorAll('.nav-mod').forEach(a => {
+  a.addEventListener('click', function(e) {
+    e.preventDefault();
+    activateModule(this.dataset.mid);
+    document.getElementById('main-stage').scrollIntoView({behavior:'smooth'});
+  });
+});
+
+// Init
+const firstMid = Object.keys(MODULES_TOTALS)[0];
+activateModule(firstMid);
+updateGlobal();
+</script>
+</body>
+</html>
