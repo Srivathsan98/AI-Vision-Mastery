@@ -39,7 +39,7 @@ The roadmap focuses heavily on:
 
 📍 GitHub Pages Tracker:
 
-https://srivathsan98.github.io/AI-Vision-Mastery/AI-Vision-Mastery-Tracker.html
+https://srivathsan98.github.io/AI-Vision-Mastery/ai_vision_mastery.html
 
 📄 Tracker Source:
 
